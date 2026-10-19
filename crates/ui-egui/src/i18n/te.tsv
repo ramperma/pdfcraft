@@ -2341,3 +2341,10 @@ animation effects	Off	ఆఫ్
 	Make properties default	లక్షణాలను డిఫాల్ట్‌గా చేయి
 	Pages selected	ఎంచుకున్న పేజీలు
 	Page properties	పేజీ లక్షణాలు
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	ఈ సంకేతపదాన్ని సిస్టమ్ కీరింగ్‌లో గుర్తుంచుకో
+	Forget saved password	సేవ్ చేసిన సంకేతపదాన్ని మర్చిపో
+	The system keyring could not store the password.	సిస్టమ్ కీరింగ్ సంకేతపదాన్ని సేవ్ చేయలేకపోయింది.
+	The system keyring could not forget the password.	సిస్టమ్ కీరింగ్ సంకేతపదాన్ని మర్చిపోలేకపోయింది.
+	This file is no longer the digital ID that was imported.	ఈ ఫైలు ఇకపై దిగుమతి చేసిన డిజిటల్ గుర్తింపు కాదు.

@@ -36,6 +36,7 @@ fn harness(dir: std::path::PathBuf) -> Harness<'static, PdfCraftApp> {
         app.set_option("left", "closed").unwrap();
         app.export_dir_override = Some(dir.to_string_lossy().into_owned());
         app.save_override = Some(dir.join("contract_signed.pdf").to_string_lossy().into_owned());
+        app.id_passwords = pdfcraft_platform::id_password::Store::memory();
         app
     });
     h.run_steps(6);

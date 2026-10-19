@@ -2396,3 +2396,10 @@ animation effects	Off	关
 	Make properties default	将属性设为默认
 	Pages selected	选定的页面
 	Page properties	页面属性
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	在系统密钥环中记住此密码
+	Forget saved password	忘记已保存的密码
+	The system keyring could not store the password.	系统密钥环无法保存此密码。
+	The system keyring could not forget the password.	系统密钥环无法删除已保存的密码。
+	This file is no longer the digital ID that was imported.	此文件已不再是导入的数字标识。

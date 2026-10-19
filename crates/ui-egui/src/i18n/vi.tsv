@@ -2685,3 +2685,10 @@ key	Space	Space
 # Historical snapshot notice bar (View signed version / View revision).
 	You are viewing the signed version of “{from}” (revision {rev}). It is a snapshot: changes here won't affect the original.	Bạn đang xem phiên bản đã ký của “{from}” (bản sửa đổi {rev}). Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
 	You are viewing revision {rev} of “{from}”. It is a snapshot: changes here won't affect the original.	Bạn đang xem bản sửa đổi {rev} của “{from}”. Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Nhớ mật khẩu này trong vòng khóa hệ thống
+	Forget saved password	Quên mật khẩu đã lưu
+	The system keyring could not store the password.	Vòng khóa hệ thống không lưu được mật khẩu.
+	The system keyring could not forget the password.	Vòng khóa hệ thống không xóa được mật khẩu đã lưu.
+	This file is no longer the digital ID that was imported.	Tệp này không còn là định danh số đã nhập.

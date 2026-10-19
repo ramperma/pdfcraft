@@ -2432,3 +2432,10 @@ animation effects	Off	オフ
 	Make properties default	プロパティをデフォルトに設定
 	Pages selected	選択したページ
 	Page properties	ページのプロパティ
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	このパスワードをシステムのキーリングに保存する
+	Forget saved password	保存したパスワードを忘れる
+	The system keyring could not store the password.	システムのキーリングはパスワードを保存できませんでした。
+	The system keyring could not forget the password.	システムのキーリングはパスワードを削除できませんでした。
+	This file is no longer the digital ID that was imported.	このファイルは、読み込んだデジタル ID ではなくなっています。

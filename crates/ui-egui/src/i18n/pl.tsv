@@ -2408,3 +2408,10 @@ animation effects	Off	Wyłączone
 	Make properties default	Ustaw właściwości jako domyślne
 	Pages selected	Zaznaczone strony
 	Page properties	Właściwości strony
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Zapamiętaj to hasło w systemowym pęku kluczy
+	Forget saved password	Zapomnij zapisane hasło
+	The system keyring could not store the password.	Systemowy pęk kluczy nie mógł zapisać hasła.
+	The system keyring could not forget the password.	Systemowy pęk kluczy nie mógł zapomnieć hasła.
+	This file is no longer the digital ID that was imported.	Ten plik nie jest już zaimportowanym identyfikatorem cyfrowym.

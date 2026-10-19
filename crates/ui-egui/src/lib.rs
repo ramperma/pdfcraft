@@ -648,6 +648,9 @@ pub struct PdfCraftApp {
     pub sign_draft: Option<SignDraft>,
     /// Digital ID files the user has created or added.
     pub digital_ids: Vec<DigitalIdEntry>,
+    /// PKCS #12 passwords the user asked to remember. The system keyring, or an in-memory
+    /// stand-in in tests. Never written by [`Self::persist`].
+    pub id_passwords: pdfcraft_platform::id_password::Store,
     /// Signatures panel: expanded entries (field names).
     pub sig_expanded: Vec<String>,
     /// Accessibility Checker: options, the last check, and rules skipped by hand.
@@ -979,6 +982,7 @@ impl PdfCraftApp {
             summary_sort: Default::default(),
             sign_draft: None,
             digital_ids: Vec::new(),
+            id_passwords: pdfcraft_platform::id_password::Store::system(),
             sig_expanded: Vec::new(),
             a11y_options: a11y_ui::A11yOptions::default(),
             ocr_draft: ocr_ui::OcrDraft::default(),

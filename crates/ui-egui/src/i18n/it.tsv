@@ -2644,3 +2644,10 @@ certificate	Key usage	Utilizzo chiave
 certificate	Self-signed	Autofirmato
 certificate	SHA-1 digest	Impronta SHA-1
 certificate	SHA-256 digest	Impronta SHA-256
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Ricorda questa password nel portachiavi di sistema
+	Forget saved password	Dimentica la password salvata
+	The system keyring could not store the password.	Il portachiavi di sistema non ha potuto salvare la password.
+	The system keyring could not forget the password.	Il portachiavi di sistema non ha potuto dimenticare la password.
+	This file is no longer the digital ID that was imported.	Questo file non è più l'ID digitale che è stato importato.

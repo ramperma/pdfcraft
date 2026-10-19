@@ -2506,3 +2506,10 @@ animation effects	Off	Vypnuto
 	Make properties default	Nastavit vlastnosti jako výchozí
 	Pages selected	Vybrané stránky
 	Page properties	Vlastnosti stránky
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Zapamatovat si toto heslo v systémové klíčence
+	Forget saved password	Zapomenout uložené heslo
+	The system keyring could not store the password.	Systémová klíčenka nemohla heslo uložit.
+	The system keyring could not forget the password.	Systémová klíčenka nemohla heslo zapomenout.
+	This file is no longer the digital ID that was imported.	Tento soubor už není importovaný digitální identifikátor.

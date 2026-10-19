@@ -35,6 +35,8 @@ fn harness(dir: std::path::PathBuf) -> Harness<'static, PdfCraftApp> {
         app.set_option("left", "closed").unwrap();
         app.export_dir_override = Some(dir.to_string_lossy().into_owned());
         app.save_override = Some(dir.join("contract_signed.pdf").to_string_lossy().into_owned());
+        // Tests must not write a password into the machine's real keyring.
+        app.id_passwords = pdfcraft_platform::id_password::Store::memory();
         app
     });
     h.run_steps(6);
@@ -467,6 +469,7 @@ fn os_store_identities_are_not_persisted() {
             email: String::new(),
             expires: "2030.01.01".into(),
             unusable: None,
+            fingerprint: String::new(),
         });
     }
     let saved = app.persist();
@@ -492,6 +495,7 @@ fn windows_store_identity_does_not_ask_for_a_file_password() {
         email: String::new(),
         expires: "2030.01.01".into(),
         unusable: None,
+        fingerprint: String::new(),
     });
     let draft = h.state_mut().sign_draft.as_mut().unwrap();
     draft.step = SignStep::Choose;
@@ -522,6 +526,7 @@ fn long_digital_id_names_stay_inside_the_picker() {
         email: String::new(),
         expires: "2030.01.01".into(),
         unusable: None,
+        fingerprint: String::new(),
     });
     h.state_mut().sign_draft.as_mut().unwrap().step = SignStep::Choose;
     h.run_steps(3);
@@ -559,6 +564,7 @@ fn an_unusable_id_is_shown_with_its_reason_and_cannot_be_chosen() {
         email: String::new(),
         expires: String::new(),
         unusable: Some("its private key can't be opened: the key is missing from its key store (Windows error 0x80090016)".into()),
+        fingerprint: String::new(),
     });
     h.state_mut().start_signing(0, None, None, None);
     h.run_steps(3);
@@ -579,6 +585,7 @@ fn an_unusable_id_is_shown_with_its_reason_and_cannot_be_chosen() {
         email: String::new(),
         expires: "2030.01.01".into(),
         unusable: None,
+        fingerprint: String::new(),
     });
     h.state_mut().start_signing(0, None, None, None);
     h.run_steps(3);

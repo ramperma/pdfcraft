@@ -2438,3 +2438,10 @@ animation effects	Off	Ανενεργά
 	Make properties default	Ορισμός ιδιοτήτων ως προεπιλογή
 	Pages selected	Επιλεγμένες σελίδες
 	Page properties	Ιδιότητες σελίδας
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Απομνημόνευση αυτού του κωδικού στην κλειδοθήκη του συστήματος
+	Forget saved password	Διαγραφή αποθηκευμένου κωδικού
+	The system keyring could not store the password.	Η κλειδοθήκη του συστήματος δεν μπόρεσε να αποθηκεύσει τον κωδικό.
+	The system keyring could not forget the password.	Η κλειδοθήκη του συστήματος δεν μπόρεσε να διαγράψει τον κωδικό.
+	This file is no longer the digital ID that was imported.	Αυτό το αρχείο δεν είναι πια η ψηφιακή ταυτότητα που εισήχθη.

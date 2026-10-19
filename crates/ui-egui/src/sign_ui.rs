@@ -13,8 +13,9 @@ use crate::fill_sign::SavedSig;
 use crate::theme::{self, Tokens};
 use crate::{PdfCraftApp, icons, widgets};
 
-/// A digital ID the app knows about (Acrobat: Digital ID files). The file stays where it is;
-/// its password is asked for at each signing.
+/// A digital ID the app knows about (Acrobat: Digital ID files). The file stays where it is.
+/// A password the user asked to remember is kept in the system keyring, keyed by
+/// [`fingerprint`](DigitalIdEntry::fingerprint), never in these settings.
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DigitalIdEntry {
     pub path: String,
@@ -22,6 +23,10 @@ pub struct DigitalIdEntry {
     pub issuer: String,
     pub email: String,
     pub expires: String,
+    /// SHA-256 of the certificate, as [`pdfcraft_engine::sign::Certificate::fingerprint`] shows it.
+    /// Empty until the certificate has been seen. Old settings files omit it.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub fingerprint: String,
     /// Why the ID can't sign (a Windows store certificate whose key PdfCraft can't use): shown
     /// greyed with the reason, and never selectable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -103,6 +108,12 @@ pub struct SignDraft {
     pub step: SignStep,
     pub selected: Option<usize>,
     pub password: String,
+    /// Save [`password`](SignDraft::password) in the system keyring after a successful open.
+    pub remember_password: bool,
+    /// The password was filled from the keyring, so a wrong one means that entry is stale.
+    pub password_from_store: bool,
+    /// The Sign as step was just opened: look up a saved password once, not on every frame.
+    pub load_saved_password: bool,
     pub reason: String,
     pub location: String,
     pub appearance: Appearance,
@@ -127,6 +138,9 @@ impl SignDraft {
             step: if ids.is_empty() { SignStep::Configure } else { SignStep::Choose },
             selected: ids.iter().position(|e| e.unusable.is_none()),
             password: String::new(),
+            remember_password: false,
+            password_from_store: false,
+            load_saved_password: false,
             reason: String::new(),
             location: String::new(),
             appearance: Appearance::default(),
@@ -249,6 +263,7 @@ pub fn entry_for(path: &str, c: &Certificate) -> DigitalIdEntry {
         email: c.subject.email().unwrap_or("").to_string(),
         expires: format!("{:04}.{:02}.{:02}", c.not_after.year, c.not_after.month, c.not_after.day),
         unusable: None,
+        fingerprint: c.fingerprint(),
     }
 }
 
@@ -262,6 +277,7 @@ fn entry_unusable(u: &sign::windows::Unusable) -> DigitalIdEntry {
         email: String::new(),
         expires: String::new(),
         unusable: Some(u.reason.clone()),
+        fingerprint: String::new(),
     }
 }
 
@@ -335,6 +351,9 @@ impl PdfCraftApp {
         if self.digital_ids.get(index).is_none_or(|e| e.path.starts_with("keychain:") || e.path.starts_with("windows:")) {
             return false;
         }
+        if let Some(fp) = self.digital_ids.get(index).map(|e| e.fingerprint.clone()).filter(|fp| !fp.is_empty()) {
+            let _ = self.id_passwords.forget(&fp);
+        }
         self.digital_ids.remove(index);
         if let Some(d) = self.sign_draft.as_mut() {
             d.confirm_remove = None;
@@ -400,6 +419,42 @@ impl PdfCraftApp {
         Ok(self.add_digital_id(&d.file, &id.certificate))
     }
 
+    /// Open a file digital ID. A remembered password is written to the system keyring only after
+    /// the file opens, and only under this certificate's fingerprint. A file that is no longer
+    /// that certificate is refused.
+    fn open_file_id(&mut self, entry: &DigitalIdEntry, password: &str, remember: bool, from_store: bool) -> Result<DigitalId, String> {
+        let bytes = std::fs::read(&entry.path).map_err(|e| format!("{}: {e}", entry.path))?;
+        let id = match sign::pkcs12::open(&bytes, password) {
+            Ok(id) => id,
+            Err(sign::SignError::WrongPassword) => {
+                if from_store && !entry.fingerprint.is_empty() {
+                    let _ = self.id_passwords.forget(&entry.fingerprint);
+                    if let Some(d) = self.sign_draft.as_mut() {
+                        d.password.clear();
+                        d.remember_password = false;
+                        d.password_from_store = false;
+                    }
+                }
+                return Err("The password is incorrect.".into());
+            }
+            Err(e) => return Err(e.to_string()),
+        };
+        let fingerprint = id.certificate.fingerprint();
+        if !entry.fingerprint.is_empty() && entry.fingerprint != fingerprint {
+            let _ = self.id_passwords.forget(&entry.fingerprint);
+            return Err("This file is no longer the digital ID that was imported.".into());
+        }
+        if let Some(slot) = self.digital_ids.iter_mut().find(|e| e.path == entry.path) {
+            slot.fingerprint = fingerprint.clone();
+        }
+        if remember {
+            self.id_passwords.save(&fingerprint, password).map_err(|_| "The system keyring could not store the password.".to_string())?;
+        } else if !fingerprint.is_empty() {
+            let _ = self.id_passwords.forget(&fingerprint);
+        }
+        Ok(id)
+    }
+
     /// Sign as …: open the ID, sign, save the signed file (Save As), and show it.
     fn finish_signing(&mut self) -> Result<(), String> {
         // What's typed in a form field is signed with the document (#166). A rejected value keeps
@@ -415,11 +470,7 @@ impl PdfCraftApp {
         } else if entry.path.starts_with("windows:") {
             windows_id(&entry.path)?
         } else {
-            let bytes = std::fs::read(&entry.path).map_err(|e| format!("{}: {e}", entry.path))?;
-            sign::pkcs12::open(&bytes, &d.password).map_err(|e| match e {
-                sign::SignError::WrongPassword => "The password is incorrect.".to_string(),
-                e => e.to_string(),
-            })?
+            self.open_file_id(&entry, &d.password, d.remember_password, d.password_from_store)?
         };
         let some = |s: &str| (!s.trim().is_empty()).then(|| s.trim().to_string());
         // Only a visible signature shows its graphic.
@@ -717,6 +768,7 @@ fn choose(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
             }
             if resp.double_clicked() {
                 d.step = SignStep::SignAs;
+                d.load_saved_password = true;
             }
         }
         if ids.is_empty() {
@@ -750,6 +802,7 @@ fn choose(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             if ui.add_enabled_ui(d.selected.is_some(), |ui| widgets::pill_button(ui, tl!("Continue"), true)).inner.clicked() {
                 d.step = SignStep::SignAs;
+                d.load_saved_password = true;
                 d.error = None;
             }
             if widgets::pill_button(ui, tl!("Cancel"), false).clicked() {
@@ -966,7 +1019,35 @@ fn preview(
     ui.painter().galley(egui::pos2(x, inner.center().y - galley.size().y / 2.0), galley, Color32::BLACK);
 }
 
+/// One lookup when Sign as opens. A missing keyring leaves the password field empty.
+fn take_saved_password(app: &mut PdfCraftApp) -> Option<String> {
+    if !app.sign_draft.as_ref().is_some_and(|draft| draft.load_saved_password) {
+        return None;
+    }
+    if let Some(draft) = app.sign_draft.as_mut() {
+        draft.load_saved_password = false;
+    }
+    let fingerprint = app.sign_draft.as_ref().and_then(|draft| draft.selected).and_then(|index| app.digital_ids.get(index)).and_then(|entry| {
+        if entry.path.starts_with("keychain:") || entry.path.starts_with("windows:") || entry.fingerprint.is_empty() {
+            None
+        } else {
+            Some(entry.fingerprint.clone())
+        }
+    })?;
+    match app.id_passwords.load(&fingerprint) {
+        pdfcraft_platform::id_password::Load::Found(password) => Some(password),
+        _ => None,
+    }
+}
+
 fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
+    if let Some(password) = take_saved_password(app)
+        && let Some(draft) = app.sign_draft.as_mut()
+    {
+        draft.password = password;
+        draft.remember_password = true;
+        draft.password_from_store = true;
+    }
     let ids = app.digital_ids.clone();
     // The time as the signature will show it (signing takes the session clock then).
     let date = sign::pdf::display_date(&app.session.signing_date());
@@ -987,6 +1068,7 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
     let mut go = false;
     #[cfg(not(target_arch = "wasm32"))]
     let mut pick = false;
+    let mut forget = false;
     if d.rect.is_some() || d.field.is_some() {
         ui.label(egui::RichText::new(tl!("Appearance")).font(theme::semibold(12.5)));
         let graphic = graphic_of(app.signature.as_ref(), &d.graphic);
@@ -1074,6 +1156,16 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
             if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 go = true;
             }
+            ui.end_row();
+            if pdfcraft_platform::id_password::available() {
+                ui.label("");
+                ui.vertical(|ui| {
+                    ui.add(widgets::checkbox(&mut d.remember_password, tl!("Remember this password in the system keyring")));
+                    if d.password_from_store && widgets::pill_button(ui, tl!("Forget saved password"), false).clicked() {
+                        forget = true;
+                    }
+                });
+            }
         }
         ui.end_row();
     });
@@ -1093,6 +1185,22 @@ fn sign_as(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
             }
         });
     });
+    if forget {
+        let fingerprint = app
+            .sign_draft
+            .as_ref()
+            .and_then(|draft| draft.selected)
+            .and_then(|index| app.digital_ids.get(index))
+            .map(|entry| entry.fingerprint.clone())
+            .unwrap_or_default();
+        let forgotten = fingerprint.is_empty() || app.id_passwords.forget(&fingerprint).is_ok();
+        if let Some(draft) = app.sign_draft.as_mut() {
+            draft.password.clear();
+            draft.remember_password = false;
+            draft.password_from_store = false;
+            draft.error = (!forgotten).then(|| "The system keyring could not forget the password.".to_string());
+        }
+    }
     #[cfg(not(target_arch = "wasm32"))]
     if pick {
         app.pick_sign_graphic_image();
@@ -1557,7 +1665,15 @@ mod tests {
     }
 
     fn listed(path: &str, name: &str) -> DigitalIdEntry {
-        DigitalIdEntry { path: path.into(), name: name.into(), issuer: String::new(), email: String::new(), expires: String::new(), unusable: None }
+        DigitalIdEntry {
+            path: path.into(),
+            name: name.into(),
+            issuer: String::new(),
+            email: String::new(),
+            expires: String::new(),
+            unusable: None,
+            fingerprint: String::new(),
+        }
     }
 
     /// Issue #1396: an imported ID can be taken off the list (its file stays), the dialog's
@@ -1632,5 +1748,47 @@ mod tests {
         assert_eq!(detail_lines(&bare, &de, "Ada", "Genehmigt", "", "D"), ["Ada", "Genehmigt", "D"]);
         let nothing = Appearance { name: false, date: false, ..all };
         assert!(detail_lines(&nothing, &de, "Ada", "  ", "", "D").is_empty());
+    }
+
+    /// A remembered PKCS #12 password stays in the credential store, never in settings. A file
+    /// that no longer holds that certificate is refused and the saved password is dropped.
+    #[test]
+    fn a_remembered_password_stays_out_of_settings_and_a_replaced_file_is_refused() {
+        let dir = scratch();
+        let path = create_in(&dir).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let cert = sign::pkcs12::open(&bytes, "secret12").unwrap().certificate;
+        let mut app = PdfCraftApp::new();
+        app.id_passwords = pdfcraft_platform::id_password::Store::memory();
+        app.export_dir_override = Some(dir.to_string_lossy().into_owned());
+        let index = app.add_digital_id(&path.to_string_lossy(), &cert);
+        let entry = app.digital_ids[index].clone();
+        app.open_file_id(&entry, "secret12", true, false).unwrap();
+        let saved = app.persist();
+        assert!(!saved.contains("secret12"), "{saved}");
+        match app.id_passwords.load(&entry.fingerprint) {
+            pdfcraft_platform::id_password::Load::Found(password) => assert_eq!(password, "secret12"),
+            other => panic!("the password was not stored: {other:?}"),
+        }
+        let mut draft = SignDraft::new(0, None, None, None, &app.digital_ids);
+        draft.selected = Some(index);
+        draft.load_saved_password = true;
+        app.sign_draft = Some(draft);
+        assert_eq!(take_saved_password(&mut app).as_deref(), Some("secret12"));
+        assert!(!app.sign_draft.as_ref().unwrap().load_saved_password);
+
+        let mut second = PdfCraftApp::new();
+        second.export_dir_override = Some(dir.to_string_lossy().into_owned());
+        let key = KEY_ALGORITHMS.iter().position(|k| k.1 == "p256").unwrap();
+        second.sign_draft = Some(SignDraft {
+            new_id: NewIdDraft { name: "Ada Lovelace".into(), key, password: "secret12".into(), confirm: "secret12".into(), ..NewIdDraft::default() },
+            ..SignDraft::new(0, None, None, None, &[])
+        });
+        let other = second.create_digital_id().unwrap();
+        std::fs::copy(&second.digital_ids[other].path, &path).unwrap();
+        let err = app.open_file_id(&app.digital_ids[index].clone(), "secret12", true, false).unwrap_err();
+        assert_eq!(err, "This file is no longer the digital ID that was imported.");
+        assert_eq!(app.id_passwords.load(&entry.fingerprint), pdfcraft_platform::id_password::Load::Missing);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

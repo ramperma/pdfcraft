@@ -2432,3 +2432,10 @@ animation effects	Off	Désactivés
 	Make properties default	Définir comme propriétés par défaut
 	Pages selected	Pages sélectionnées
 	Page properties	Propriétés de la page
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Mémoriser ce mot de passe dans le trousseau du système
+	Forget saved password	Oublier le mot de passe enregistré
+	The system keyring could not store the password.	Le trousseau du système n'a pas pu enregistrer le mot de passe.
+	The system keyring could not forget the password.	Le trousseau du système n'a pas pu oublier le mot de passe.
+	This file is no longer the digital ID that was imported.	Ce fichier n'est plus l'identifiant numérique qui a été importé.

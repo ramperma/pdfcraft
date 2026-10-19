@@ -2428,3 +2428,10 @@ animation effects	Off	Kapalı
 	Make properties default	Özellikleri varsayılan yap
 	Pages selected	Seçilen sayfalar
 	Page properties	Sayfa özellikleri
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Bu parolayı sistem anahtarlığında hatırla
+	Forget saved password	Kayıtlı parolayı unut
+	The system keyring could not store the password.	Sistem anahtarlığı parolayı kaydedemedi.
+	The system keyring could not forget the password.	Sistem anahtarlığı parolayı unutamadı.
+	This file is no longer the digital ID that was imported.	Bu dosya artık içe aktarılan dijital kimlik değil.

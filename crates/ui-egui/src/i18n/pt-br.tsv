@@ -2446,3 +2446,10 @@ animation effects	Off	Desativados
 	Make properties default	Tornar propriedades padrão
 	Pages selected	Páginas selecionadas
 	Page properties	Propriedades da página
+
+# Digital ID password kept in the system keyring.
+	Remember this password in the system keyring	Lembrar esta senha no chaveiro do sistema
+	Forget saved password	Esquecer a senha salva
+	The system keyring could not store the password.	O chaveiro do sistema não pôde salvar a senha.
+	The system keyring could not forget the password.	O chaveiro do sistema não pôde esquecer a senha.
+	This file is no longer the digital ID that was imported.	Este arquivo não é mais a identificação digital que foi importada.

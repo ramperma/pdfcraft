@@ -14,6 +14,12 @@ workspace = true
 # `write_atomically`: a volume that refuses F_FULLFSYNC gets a plain fsync.
 rustix = { version = "1", features = ["fs"] }
 
+# Desktop credential store for a digital-ID password the user asked to remember.
+# Linux and FreeBSD: Secret Service (the session keyring). Windows: Credential Manager.
+# macOS: Keychain. No store is linked for the web build.
+[target.'cfg(any(target_os = "linux", target_os = "freebsd", target_os = "windows", target_os = "macos"))'.dependencies]
+keyring = { version = "3.6.3", default-features = false, features = ["windows-native", "sync-secret-service", "crypto-rust", "apple-native"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 # Already in the dependency graph through the accessibility integration. The portal watcher
 # uses the async API so dropping it can cancel an idle subscription without polling.
